@@ -322,6 +322,45 @@ static int parsetos(char *str)
 	return (tos);
 }
 
+
+/* Extract the hostname from an rsync:// URL. */
+static char *rsync_url_host(const char *url)
+{
+    const char *host, *end;
+    size_t len;
+    char *result;
+
+    if (strncmp(url, "rsync://", 8))
+        return NULL;
+
+    host = url + 8;
+
+    if (*host == '[') {
+        host++;
+        end = strchr(host, ']');
+        if (!end || (end[1] != '/' && end[1] != '\0'))
+            error(2, 0, "invalid rsync URL: %s", url);
+    } else {
+        end = strchr(host, '/');
+        if (!end)
+            end = host + strlen(host);
+        if (memchr(host, ':', end - host) ||
+            memchr(host, '@', end - host))
+            error(2, 0, "invalid rsync URL: %s", url);
+    }
+
+    len = end - host;
+
+    if (!len)
+        error(2, 0, "missing host in rsync URL");
+
+    result = strndup(host, len);
+    if (!result)
+        error(2, errno, "strndup");
+
+    return result;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -619,6 +658,13 @@ main(int argc, char **argv)
 		error(2, EDESTADDRREQ, "usage error");
 
 	target = argv[argc - 1];
+    {
+        char *host = rsync_url_host(target);
+        if (host) {
+            target = host;
+            argv[argc - 1] = host;
+        }
+    }
 
 	/* Create sockets */
 	enable_capability_raw();
