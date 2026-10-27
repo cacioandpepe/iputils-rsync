@@ -402,6 +402,7 @@ main(int argc, char **argv)
 	socket_st sock6 = { .fd = -1 };
 	char *target;
 	char *rsync_host = NULL;
+	char *original_target;
 	static struct ping_rts rts = {
 		.interval = 1000,
 		.preload = 1,
@@ -682,7 +683,9 @@ main(int argc, char **argv)
 
 	if (!argc)
 		error(2, EDESTADDRREQ, "usage error");
+
 	target = argv[argc - 1];
+	original_target = target;
 	rsync_host = rsync_url_host(target);
 	if (rsync_host) {
 		target = rsync_host;
@@ -817,7 +820,7 @@ main(int argc, char **argv)
 	freeaddrinfo(result);
 
 	if (rsync_host) {
-		argv[argc - 1] = NULL;
+		argv[argc - 1] = original_target;
 		free(rsync_host);
 	}
 
