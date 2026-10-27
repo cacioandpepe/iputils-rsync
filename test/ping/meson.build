@@ -102,3 +102,11 @@ foreach dst : [ '127.0.0.1' ] + ipv6_dst
 endforeach
 
 test('json', find_program('test_json.py', required : true), args: ping)
+
+# rsync:// destination parsing regression tests
+test(
+  'ping-rsync-url',
+  find_program('python3'),
+  args: [files('rsync-url.py'), ping.full_path()],
+  timeout: 90
+)
