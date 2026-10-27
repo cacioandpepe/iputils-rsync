@@ -326,7 +326,7 @@ static int parsetos(char *str)
 /* Extract the hostname from an rsync:// URL. */
 static char *rsync_url_host(const char *url)
 {
-    const char *host, *end;
+    const char *host, *end, *port = NULL;
     size_t len;
     char *result;
 
@@ -338,21 +338,47 @@ static char *rsync_url_host(const char *url)
     if (*host == '[') {
         host++;
         end = strchr(host, ']');
-        if (!end || (end[1] != '/' && end[1] != '\0'))
+        if (!end)
+            error(2, 0, "invalid rsync URL: %s", url);
+
+        if (end[1] == ':')
+            port = end + 2;
+        else if (end[1] != '/' && end[1] != '\0')
             error(2, 0, "invalid rsync URL: %s", url);
     } else {
-        end = strchr(host, '/');
-        if (!end)
-            end = host + strlen(host);
-        if (memchr(host, ':', end - host) ||
-            memchr(host, '@', end - host))
-            error(2, 0, "invalid rsync URL: %s", url);
+        end = host;
+
+        while (*end && *end != '/' && *end != ':') {
+            if (*end == '@' || *end == '[' || *end == ']')
+                error(2, 0, "invalid rsync URL: %s", url);
+            end++;
+        }
+
+        if (*end == ':')
+            port = end + 1;
     }
 
     len = end - host;
-
     if (!len)
         error(2, 0, "missing host in rsync URL");
+
+    if (port) {
+        const char *p = port;
+        unsigned int number = 0;
+
+        if (*p < '0' || *p > '9')
+            error(2, 0, "invalid rsync port: %s", url);
+
+        while (*p >= '0' && *p <= '9') {
+            number = number * 10 + (*p - '0');
+            if (number > 65535)
+                error(2, 0, "invalid rsync port: %s", url);
+            p++;
+        }
+
+        if (!number || (*p != '/' && *p != '\0'))
+            error(2, 0, "invalid rsync port: %s", url);
+    }
 
     result = strndup(host, len);
     if (!result)
