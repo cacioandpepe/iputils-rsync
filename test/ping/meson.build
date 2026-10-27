@@ -104,7 +104,7 @@ endforeach
 test('json', find_program('test_json.py', required : true), args: ping)
 
 # rsync:// destination parsing regression tests
-rsync_python = import('python').find_installation('python3')
+rsync_python = find_program('python3', required : true)
 
 test(
   'ping-rsync-url',
