@@ -402,6 +402,7 @@ main(int argc, char **argv)
 	socket_st sock4 = { .fd = -1 };
 	socket_st sock6 = { .fd = -1 };
 	char *target;
+	char *rsync_host = NULL;
 	static struct ping_rts rts = {
 		.interval = 1000,
 		.preload = 1,
@@ -682,15 +683,12 @@ main(int argc, char **argv)
 
 	if (!argc)
 		error(2, EDESTADDRREQ, "usage error");
-
 	target = argv[argc - 1];
-    {
-        char *host = rsync_url_host(target);
-        if (host) {
-            target = host;
-            argv[argc - 1] = host;
-        }
-    }
+	rsync_host = rsync_url_host(target);
+	if (rsync_host) {
+		target = rsync_host;
+		argv[argc - 1] = rsync_host;
+	}
 
 	/* Create sockets */
 	enable_capability_raw();
@@ -818,6 +816,11 @@ main(int argc, char **argv)
 	}
 
 	freeaddrinfo(result);
+
+	if (rsync_host) {
+		argv[argc - 1] = NULL;
+		free(rsync_host);
+	}
 
 	return ret_val;
 }
